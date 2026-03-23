@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Somnus Rebuild | 睡眠实验舱</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #030712; color: #e2e8f0; margin: 0; }
+        .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(51, 65, 85, 0.5); }
+        input[type="range"] { -webkit-appearance: none; background: #1e293b; border-radius: 999px; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; background: #10b981; border-radius: 50%; cursor: pointer; box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // 图标适配器
+        const Icon = ({ name, size = 20, className = "" }) => {
+            useEffect(() => { window.lucide && window.lucide.createIcons(); });
+            return <i data-lucide={name} className={className} style={{ width: size, height: size }}></i>;
+        };
+
+        const PHASES = [
+            { id: 'g2', title: '第一阶段：物理散热', target: 'G2：脑淋巴系统', icon: 'thermometer', logic: '降低核心体温以开启脑部清洗。', items: [
+                { id: 'p1', label: '18-20°C 室温', detail: '防止环境过热抑制降温。' },
+                { id: 'p2', label: '末梢散热(泡脚/穿袜)', detail: '通过虹吸效应强制降温。' }
+            ]},
+            { id: 'g1', title: '第二阶段：生化动力', target: 'G1：腺苷与褪黑素', icon: 'zap', logic: '管理睡眠压力与生物钟节律。', items: [
+                { id: 'a1', label: '14:00 咖啡因禁区', detail: '保护腺苷受体不被占据。' },
+                { id: 'a2', label: '10,000 Lux 晨光', detail: '重置褪黑素开启脉冲。' }
+            ]},
+            { id: 'g3', title: '第三阶段：递质原料', target: 'G3：代谢工厂', icon: 'activity', logic: '提供神经递质合成所需的关键辅因子。', items: [
+                { id: 'm1', label: '活性叶酸测试', detail: '针对MTHFR基因优化。' },
+                { id: 'm2', label: '苏氨酸镁', detail: '调节GABA/谷氨酸平衡。' }
+            ]}
+        ];
+
+        const App = () => {
+            const [view, setView] = useState('tracker');
+            const [activeItems, setActiveItems] = useState({});
+            const [logs, setLogs] = useState(() => JSON.parse(localStorage.getItem('sleep_logs') || '[]'));
+            const [currentEval, setCurrentEval] = useState({ clarity: 5, energy: 5, note: '' });
+
+            useEffect(() => { localStorage.setItem('sleep_logs', JSON.stringify(logs)); }, [logs]);
+
+            const saveLog = () => {
+                const activeLabels = PHASES.flatMap(p => p.items).filter(i => activeItems[i.id]).map(i => i.label);
+                const newLog = { id: Date.now(), date: new Date().toLocaleDateString(), elements: activeLabels, ...currentEval };
+                setLogs([newLog, ...logs]);
+                setCurrentEval({ clarity: 5, energy: 5, note: '' });
+                alert('记录已归档！');
+            };
+
+            return (
+                <div className="min-h-screen pb-20">
+                    <nav className="p-6 border-b border-slate-800 flex justify-between items-center sticky top-0 bg-[#030712]/80 backdrop-blur-md z-50">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                                <Icon name="moon" className="text-white" />
+                            </div>
+                            <h1 className="font-black tracking-tighter text-xl">SOMNUS <span className="text-emerald-500">REBUILD</span></h1>
+                        </div>
+                        <div className="flex bg-slate-900 rounded-full p-1 border border-slate-800">
+                            <button onClick={() => setView('tracker')} className={`px-4 py-1.5 rounded-full text-xs font-bold ${view === 'tracker' ? 'bg-emerald-600' : 'text-slate-500'}`}>实验清单</button>
+                            <button onClick={() => setView('logs')} className={`px-4 py-1.5 rounded-full text-xs font-bold ${view === 'logs' ? 'bg-emerald-600' : 'text-slate-500'}`}>历史足迹</button>
+                        </div>
+                    </nav>
+
+                    <main className="max-w-5xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-10">
+                        {view === 'tracker' ? (
+                            <React.Fragment>
+                                <div className="lg:col-span-7 space-y-6">
+                                    <h2 className="text-2xl font-black">叠加验证</h2>
+                                    {PHASES.map(phase => (
+                                        <div key={phase.id} className="glass p-6 rounded-[2rem] space-y-4">
+                                            <div className="flex items-center gap-4">
+                                                <div className="p-3 bg-slate-800 rounded-2xl text-emerald-400"><Icon name={phase.icon} /></div>
+                                                <div><h3 className="font-bold">{phase.title}</h3><p className="text-[10px] text-slate-500 uppercase">{phase.target}</p></div>
+                                            </div>
+                                            <div className="grid gap-3">
+                                                {phase.items.map(item => (
+                                                    <div key={item.id} onClick={() => setActiveItems({...activeItems, [item.id]: !activeItems[item.id]})} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${activeItems[item.id] ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-transparent bg-slate-800/20'}`}>
+                                                        <div className="flex gap-3"><Icon name="check-circle-2" className={activeItems[item.id] ? 'text-emerald-500' : 'text-slate-700'} /><p className="text-sm font-bold">{item.label}</p></div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="lg:col-span-5">
+                                    <div className="sticky top-28 glass p-8 rounded-[2.5rem] space-y-6 border-t-emerald-500/30 border-t-4">
+                                        <h3 className="text-sm font-black uppercase text-emerald-500">当前叠加状态</h3>
+                                        <div className="flex flex-wrap gap-2 min-h-[50px]">
+                                            {Object.keys(activeItems).filter(k => activeItems[k]).length ? Object.keys(activeItems).filter(k => activeItems[k]).map(k => (
+                                                <span key={k} className="text-[10px] px-2 py-1 bg-slate-800 rounded-lg text-slate-300 border border-slate-700">+ {PHASES.flatMap(p => p.items).find(i => i.id === k).label}</span>
+                                            )) : <span className="text-xs text-slate-600">等待叠加因子...</span>}
+                                        </div>
+                                        <div className="space-y-6 pt-4 border-t border-slate-800">
+                                            <div><p className="text-xs font-bold text-slate-400 mb-2">大脑清晰度: {currentEval.clarity}</p><input type="range" min="1" max="10" className="w-full" value={currentEval.clarity} onChange={e => setCurrentEval({...currentEval, clarity: e.target.value})} /></div>
+                                            <div><p className="text-xs font-bold text-slate-400 mb-2">能量饱和度: {currentEval.energy}</p><input type="range" min="1" max="10" className="w-full" value={currentEval.energy} onChange={e => setCurrentEval({...currentEval, energy: e.target.value})} /></div>
+                                            <textarea placeholder="输入今日体感差异..." className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-sm h-24" value={currentEval.note} onChange={e => setCurrentEval({...currentEval, note: e.target.value})} />
+                                            <button onClick={saveLog} className="w-full py-4 bg-emerald-500 text-slate-900 font-black rounded-2xl shadow-xl hover:bg-emerald-400">归档实验记录</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </React.Fragment>
+                        ) : (
+                            <div className="lg:col-span-12 space-y-6">
+                                <h2 className="text-2xl font-black">实验足迹</h2>
+                                {logs.map(log => (
+                                    <div key={log.id} className="glass p-6 rounded-3xl flex gap-6 items-center">
+                                        <div className="text-center"><p className="text-xs font-black text-emerald-500">{log.date}</p></div>
+                                        <div className="h-10 w-px bg-slate-800"></div>
+                                        <div className="flex-1">
+                                            <div className="flex flex-wrap gap-2 mb-2">{log.elements.map((el, i) => (<span key={i} className="text-[10px] bg-slate-800 px-2 py-0.5 rounded border border-slate-700">+ {el}</span>))}</div>
+                                            <p className="text-sm italic text-slate-400">"{log.note}"</p>
+                                        </div>
+                                        <div className="flex gap-4 font-black"><div className="text-blue-400 text-xs">🧠 {log.clarity}</div><div className="text-emerald-400 text-xs">⚡ {log.energy}</div></div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
